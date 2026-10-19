@@ -2,16 +2,18 @@
 import { CONFIG } from './config.js';
 import * as mock from './mock-api.js';
 
+// credentials: 'omit'：Chrome 登入多個 Google 帳號時帶 cookie 打 GAS 會被導去 /u/N/ 而回 404
 async function call(method, action, params = {}) {
   if (!CONFIG.apiUrl || !CONFIG.token) throw new Error('尚未設定 config.js 的 apiUrl／token');
   let res;
   if (method === 'GET') {
     const qs = new URLSearchParams({ action, token: CONFIG.token, ...params });
-    res = await fetch(`${CONFIG.apiUrl}?${qs}`);
+    res = await fetch(`${CONFIG.apiUrl}?${qs}`, { credentials: 'omit' });
   } else {
     // text/plain 避免 CORS 預檢；GAS 端照樣從 postData.contents 讀 JSON
     res = await fetch(CONFIG.apiUrl, {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ token: CONFIG.token, action, payload: params }),
     });
