@@ -1,7 +1,7 @@
 // 假資料：結構對齊 GAS bootstrap_() 的回傳，另加新團用的 openSessions / myLines
 export const MOCK = {
   restaurants: [
-    { id: 'r_08fff4f0', name: '成美私廚料理', phone: '0929-805911', note: '六日公休' },
+    { id: 'r_08fff4f0', name: '成美私廚料理', phone: '0929-805911', note: '六日公休', address: '高雄市前金區中正四路 100 號', menuPhotoUrl: 'icons/icon128.png' },
     { id: 'r_d6f7699b', name: '金大富', phone: '07-3388999', note: '週日公休' },
   ],
   optionGroups: [
