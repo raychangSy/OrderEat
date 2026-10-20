@@ -6,11 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,7 +31,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -69,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.symmetry.ordereat.domain.model.MenuItem
 import com.symmetry.ordereat.domain.model.OrderLine
 import com.symmetry.ordereat.domain.model.OrderSession
+import com.symmetry.ordereat.domain.model.Restaurant
 import com.symmetry.ordereat.domain.usecase.Orderer
 import com.symmetry.ordereat.presentation.common.DeleteSessionDialog
 import com.symmetry.ordereat.presentation.common.rememberOpenUrl
@@ -76,6 +78,7 @@ import com.symmetry.ordereat.presentation.common.CollectEffect
 import com.symmetry.ordereat.presentation.common.EmptyState
 import com.symmetry.ordereat.presentation.common.formatPrice
 import com.symmetry.ordereat.presentation.common.label
+import com.symmetry.ordereat.presentation.photo.MenuPhotoPreview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,12 +133,6 @@ fun OrderScreen(
                             IconButton(onClick = { openUrl(link) }) {
                                 Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "線上菜單")
                             }
-                        }
-                        IconButton(onClick = { openUrl(r.mapLink) }) {
-                            Icon(Icons.Default.Map, contentDescription = "Google 地圖")
-                        }
-                        IconButton(onClick = { onOpenMenuPhoto(r.id) }) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = "菜單照片")
                         }
                     }
                     if (state.canDelete) {
@@ -195,6 +192,9 @@ fun OrderScreen(
                     onSelect = { viewModel.onIntent(OrderIntent.SelectOrderer(it)) },
                     onAddGuest = { viewModel.onIntent(OrderIntent.ShowGuestDialog) },
                     header = {
+                        state.restaurant?.let { r ->
+                            RestaurantCard(r, onOpenMap = { openUrl(r.mapLink) }, onOpenMenuPhoto = { onOpenMenuPhoto(r.id) })
+                        }
                         if (state.canJoin || session.joinOpen) {
                             JoinCard(
                                 session = session,
@@ -215,6 +215,11 @@ fun OrderScreen(
                     onEditLine = { viewModel.onIntent(OrderIntent.EditLine(it)) },
                     onRemoveLine = { viewModel.onIntent(OrderIntent.RemoveLine(it)) },
                     onManualItem = { viewModel.onIntent(OrderIntent.ShowManualItemDialog) },
+                    restaurantCard = {
+                        state.restaurant?.let { r ->
+                            RestaurantCard(r, onOpenMap = { openUrl(r.mapLink) }, onOpenMenuPhoto = { onOpenMenuPhoto(r.id) })
+                        }
+                    },
                 )
             }
         }
@@ -274,7 +279,7 @@ private fun OrdererGrid(
     cells: List<OrdererCell>,
     onSelect: (Orderer) -> Unit,
     onAddGuest: () -> Unit,
-    header: @Composable () -> Unit,
+    header: @Composable ColumnScope.() -> Unit,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -282,7 +287,9 @@ private fun OrdererGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) { header() }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), content = header)
+        }
         item(span = { GridItemSpan(maxLineSpan) }) {
             val done = cells.count { it.lineCount > 0 }
             Text("誰要點餐？（已點 $done／${cells.size} 人）", style = MaterialTheme.typography.titleSmall)
@@ -346,6 +353,7 @@ private fun MemberMenu(
     onEditLine: (OrderLine) -> Unit,
     onRemoveLine: (OrderLine) -> Unit,
     onManualItem: () -> Unit,
+    restaurantCard: @Composable () -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
@@ -387,6 +395,9 @@ private fun MemberMenu(
                 )
             }
             item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+        }
+        item {
+            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { restaurantCard() }
         }
         item {
             Text("菜單", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
@@ -485,6 +496,27 @@ private fun ManualItemDialog(onConfirm: (String, Int, Int, String) -> Unit, onDi
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
     )
+}
+
+/** 店家備註＋菜單照片（點擊放大）＋ Google 地圖 */
+@Composable
+private fun RestaurantCard(restaurant: Restaurant, onOpenMap: () -> Unit, onOpenMenuPhoto: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (restaurant.note.isNotBlank()) {
+            Text("備註：${restaurant.note}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        }
+        MenuPhotoPreview(
+            url = restaurant.menuPhotoUrl,
+            emptyText = "目前沒有菜單照片\n請到「設定 → 餐廳詳細」上傳",
+            onClick = onOpenMenuPhoto,
+            modifier = Modifier.height(180.dp),
+        )
+        OutlinedButton(onClick = onOpenMap, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Map, contentDescription = null, Modifier.size(18.dp))
+            Spacer(Modifier.size(6.dp))
+            Text("Google 地圖")
+        }
+    }
 }
 
 /** 開單（讓 Chrome 插件跟單）／開單中同步跟單 */

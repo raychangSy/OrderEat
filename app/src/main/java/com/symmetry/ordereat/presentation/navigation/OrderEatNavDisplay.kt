@@ -18,6 +18,9 @@ import com.symmetry.ordereat.presentation.photo.MenuPhotoScreen
 import com.symmetry.ordereat.presentation.photo.MenuPhotoViewModel
 import com.symmetry.ordereat.presentation.picker.PickerScreen
 import com.symmetry.ordereat.presentation.picker.PickerViewModel
+import com.symmetry.ordereat.presentation.restaurants.RestaurantDetailScreen
+import com.symmetry.ordereat.presentation.restaurants.RestaurantDetailViewModel
+import com.symmetry.ordereat.presentation.restaurants.RestaurantsScreen
 import com.symmetry.ordereat.presentation.review.ReviewScreen
 import com.symmetry.ordereat.presentation.review.ReviewViewModel
 import com.symmetry.ordereat.presentation.settings.SettingsScreen
@@ -42,7 +45,6 @@ fun OrderEatNavDisplay() {
                     onOpenSession = { backStack.add(OrderRoute(it)) },
                     onOpenSummary = { backStack.add(ReviewRoute(it)) },
                     onOpenHistory = { backStack.add(HistoryRoute) },
-                    onOpenMembers = { backStack.add(MembersRoute) },
                     onOpenSettings = { backStack.add(SettingsRoute) },
                 )
             }
@@ -52,6 +54,7 @@ fun OrderEatNavDisplay() {
                     onBack = back,
                     // 選好店後用點餐頁取代抽籤頁，返回時直接回首頁
                     onSessionCreated = { sessionId -> backStack.replaceTop(OrderRoute(sessionId)) },
+                    onOpenMenuPhoto = { backStack.add(MenuPhotoRoute(it)) },
                 )
             }
             entry<OrderRoute> { key ->
@@ -84,7 +87,28 @@ fun OrderEatNavDisplay() {
                 )
             }
             entry<MembersRoute> { MembersScreen(viewModel = hiltViewModel(), onBack = back) }
-            entry<SettingsRoute> { SettingsScreen(viewModel = hiltViewModel(), onBack = back) }
+            entry<SettingsRoute> {
+                SettingsScreen(
+                    viewModel = hiltViewModel(),
+                    onBack = back,
+                    onOpenMembers = { backStack.add(MembersRoute) },
+                    onOpenRestaurants = { backStack.add(RestaurantsRoute) },
+                )
+            }
+            entry<RestaurantsRoute> {
+                RestaurantsScreen(
+                    viewModel = hiltViewModel(),
+                    onBack = back,
+                    onOpenRestaurant = { backStack.add(RestaurantDetailRoute(it)) },
+                )
+            }
+            entry<RestaurantDetailRoute> { key ->
+                RestaurantDetailScreen(
+                    viewModel = hiltViewModel<RestaurantDetailViewModel, RestaurantDetailViewModel.Factory> { it.create(key.restaurantId) },
+                    onBack = back,
+                    onOpenMenuPhoto = { backStack.add(MenuPhotoRoute(it)) },
+                )
+            }
         },
     )
 }

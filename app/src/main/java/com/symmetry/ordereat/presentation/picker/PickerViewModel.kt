@@ -87,6 +87,7 @@ class PickerViewModel @AssistedInject constructor(
                 setState {
                     copy(
                         restaurants = restaurants,
+                        picked = picked?.let { p -> restaurants.find { it.id == p.id } ?: p },
                         categories = restaurants.flatMap { it.categories }.distinct(),
                         selectedCategories = selectedCategories.filterTo(mutableSetOf()) { c -> restaurants.any { c in it.categories } },
                         excludeEnabled = settings.excludeRecentEnabled,

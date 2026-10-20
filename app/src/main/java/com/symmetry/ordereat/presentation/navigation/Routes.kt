@@ -26,3 +26,9 @@ data object MembersRoute : NavKey
 
 @Serializable
 data object SettingsRoute : NavKey
+
+@Serializable
+data object RestaurantsRoute : NavKey
+
+@Serializable
+data class RestaurantDetailRoute(val restaurantId: String) : NavKey

@@ -1,5 +1,6 @@
 package com.symmetry.ordereat.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,9 +11,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -104,7 +110,12 @@ class SettingsViewModel @Inject constructor(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    onOpenMembers: () -> Unit,
+    onOpenRestaurants: () -> Unit,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
@@ -129,6 +140,12 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            SettingsCard("管理") {
+                NavRow(Icons.Default.Storefront, "餐廳詳細", "查看店家資料、品項，上傳菜單照片", onOpenRestaurants)
+                HorizontalDivider()
+                NavRow(Icons.Default.Group, "成員設定", "新增、改名、停用成員", onOpenMembers)
+            }
+
             SettingsCard("菜單同步") {
                 Text(
                     state.settings.lastSyncAt?.let { "上次同步：${formatTime(it)}" } ?: "尚未同步",
@@ -189,6 +206,22 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NavRow(icon: ImageVector, title: String, description: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(icon, contentDescription = null)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
