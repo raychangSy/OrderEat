@@ -176,6 +176,36 @@ function enterSession(session) {
   };
 }
 
+/** 這團餐廳的資訊（Sheet「餐廳」：電話／地址／備註／地圖／菜單照片），可收合；點圖開新分頁看原圖 */
+function restaurantInfoHtml() {
+  // 舊團可能沒存餐廳 id，退回用店名找
+  const list = state.data.restaurants || [];
+  const s = state.session;
+  const r = list.find(x => s.restaurantId && x.id === s.restaurantId) || list.find(x => x.name === s.restaurantName);
+  if (!r) return '';
+  // 沒填地圖連結但有地址時，用地址搜尋 Google 地圖
+  const mapUrl = r.mapUrl || (r.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.address) : '');
+  const rows = [
+    r.phone && `<div>📞 <a href="tel:${esc(r.phone.replace(/[^\d+]/g, ''))}">${esc(r.phone)}</a></div>`,
+    r.address && `<div>📍 ${esc(r.address)}</div>`,
+    r.note && `<div>📝 ${esc(r.note)}</div>`,
+    mapUrl && `<div>🗺️ <a href="${esc(mapUrl)}" target="_blank" rel="noopener">Google 地圖</a></div>`,
+  ].filter(Boolean).join('');
+  const photo = r.menuPhotoUrl
+    ? `<a href="${esc(r.menuPhotoUrl)}" target="_blank" rel="noopener"><img src="${esc(r.menuPhotoUrl)}" alt="${esc(r.name)} 菜單" loading="lazy"></a>`
+    : '';
+  if (!rows && !photo) return '';
+  return `<details class="info" ${state.infoOpen ? 'open' : ''}>
+    <summary>🏪 店家資訊${photo ? '・菜單照片' : ''}</summary>
+    ${rows ? `<div class="rows">${rows}</div>` : ''}
+    ${photo}
+  </details>`;
+}
+
+function bindRestaurantInfo() {
+  $view.querySelector('.info')?.addEventListener('toggle', e => { state.infoOpen = e.currentTarget.open; });
+}
+
 // ───────── 2. 訂單總覽（所有人的單，只有自己的能改） ─────────
 function renderOverview() {
   const lines = state.lines;
@@ -224,6 +254,7 @@ function renderOverview() {
     ${state.syncError ? `<p class="error">同步失敗：${esc(state.syncError)}</p>` : ''}
     ${state.flash ? `<p class="flash">${esc(state.flash)}</p>` : ''}
     ${state.session.note ? `<p class="hint">📌 ${esc(state.session.note)}</p>` : ''}
+    ${restaurantInfoHtml()}
     <div class="summary">
       <div><span>${Object.keys(byMember).length}</span>人</div>
       <div><span>${lines.reduce((s, l) => s + l.qty, 0)}</span>份</div>
@@ -249,6 +280,7 @@ function renderOverview() {
     setTimeout(() => { btn.textContent = '📋 複製'; }, 1500);
   });
 
+  bindRestaurantInfo();
   $view.querySelectorAll('[data-tab]').forEach(el => el.addEventListener('click', () => { state.overviewTab = el.dataset.tab; renderOverview(); }));
   $footer.querySelector('#switch')?.addEventListener('click', () => { state.whoNext = 'overview'; go('who'); });
   const start = () => { state.flash = ''; state.member ? startOrder() : (state.whoNext = 'menu', go('who')); };
@@ -349,10 +381,12 @@ function renderMenu() {
   bindCartFooter();
   $view.innerHTML = `
     <div class="who"><span>點餐人：<b>${esc(state.member)}</b></span></div>
+    ${restaurantInfoHtml()}
     <div class="list">${state.menu.items.map((m, i) => `
       <button class="card" data-i="${i}">
         <div class="row"><span>${esc(m.name)}</span><span class="price">${money(m.price)}</span></div>
       </button>`).join('')}</div>`;
+  bindRestaurantInfo();
   $view.querySelectorAll('.card').forEach(el => el.addEventListener('click', () => {
     state.draft = { item: state.menu.items[el.dataset.i], picks: {}, qty: 1, note: '', editIndex: -1 };
     go('item');
