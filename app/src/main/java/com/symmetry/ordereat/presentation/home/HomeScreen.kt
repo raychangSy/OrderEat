@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -59,7 +58,6 @@ fun HomeScreen(
     onOpenSession: (String) -> Unit,
     onOpenSummary: (String) -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenMembers: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -78,7 +76,6 @@ fun HomeScreen(
                 title = { Text("今天吃什麼") },
                 actions = {
                     IconButton(onClick = onOpenHistory) { Icon(Icons.Default.History, contentDescription = "歷史記錄") }
-                    IconButton(onClick = onOpenMembers) { Icon(Icons.Default.Group, contentDescription = "成員") }
                     IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, contentDescription = "設定") }
                 },
             )

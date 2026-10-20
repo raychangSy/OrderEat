@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,6 +58,7 @@ import com.symmetry.ordereat.domain.model.AppSettings
 import com.symmetry.ordereat.domain.model.Restaurant
 import com.symmetry.ordereat.presentation.common.CollectEffect
 import com.symmetry.ordereat.presentation.common.rememberOpenUrl
+import com.symmetry.ordereat.presentation.photo.MenuPhotoPreview
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -64,6 +66,7 @@ fun PickerScreen(
     viewModel: PickerViewModel,
     onBack: () -> Unit,
     onSessionCreated: (String) -> Unit,
+    onOpenMenuPhoto: (String) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -120,7 +123,7 @@ fun PickerScreen(
                 onChangeDays = { viewModel.onIntent(PickerIntent.ChangeExcludeDays(it)) },
             )
 
-            ResultCard(state)
+            ResultCard(state, onOpenMenuPhoto)
 
             if (state.picked != null && !state.rolling) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -237,7 +240,7 @@ private fun ExcludeRecentCard(
 }
 
 @Composable
-private fun ResultCard(state: PickerState) {
+private fun ResultCard(state: PickerState, onOpenMenuPhoto: (String) -> Unit) {
     val picked = state.picked
     Card(Modifier.fillMaxWidth().heightIn(min = 180.dp)) {
         Column(
@@ -256,6 +259,12 @@ private fun ResultCard(state: PickerState) {
                 picked != null -> {
                     Text("就吃這間！", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text(picked.name, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    MenuPhotoPreview(
+                        url = picked.menuPhotoUrl,
+                        emptyText = "目前沒有菜單照片\n請到「設定 → 餐廳詳細」上傳",
+                        onClick = { onOpenMenuPhoto(picked.id) },
+                        modifier = Modifier.height(180.dp),
+                    )
                     if (picked.categories.isNotEmpty()) Text(picked.categories.joinToString("・"), style = MaterialTheme.typography.bodyMedium)
                     if (picked.phone.isNotBlank()) Text("☎ ${picked.phone}", style = MaterialTheme.typography.bodyMedium)
                     if (picked.note.isNotBlank()) {

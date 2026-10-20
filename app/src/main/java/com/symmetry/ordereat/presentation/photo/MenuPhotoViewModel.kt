@@ -3,7 +3,6 @@ package com.symmetry.ordereat.presentation.photo
 import androidx.lifecycle.viewModelScope
 import com.symmetry.ordereat.domain.model.Restaurant
 import com.symmetry.ordereat.domain.repository.MenuRepository
-import com.symmetry.ordereat.domain.repository.UploadOutcome
 import com.symmetry.ordereat.presentation.mvi.MviViewModel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -52,11 +51,7 @@ class MenuPhotoViewModel @AssistedInject constructor(
         if (currentState.uploading) return
         setState { copy(uploading = true) }
         viewModelScope.launch {
-            val message = when (val outcome = menuRepository.uploadMenuPhoto(restaurantId, uri)) {
-                UploadOutcome.Uploaded -> "菜單照片已更新"
-                is UploadOutcome.Queued -> "已存在手機，有網路會自動上傳（${outcome.reason}）"
-                is UploadOutcome.Failed -> outcome.reason
-            }
+            val message = menuRepository.uploadMenuPhoto(restaurantId, uri).photoMessage()
             setState { copy(uploading = false) }
             sendEffect(MenuPhotoEffect.ShowMessage(message))
         }
