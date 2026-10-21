@@ -724,8 +724,15 @@ function uploadPhoto_(p) {
   const name = str_(sh.getRange(row, R.NAME + 1).getValue()) || restaurantId;
   const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd-HHmmss');
   const blob = Utilities.newBlob(Utilities.base64Decode(base64), str_(p.mimeType) || 'image/jpeg', name + '_' + stamp + '.jpg');
-  const file = photoFolder_().createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  // 每一步分開報錯，「存取遭拒：DriveApp」才知道是卡在哪裡
+  const folder = driveStep_('取得照片資料夾', photoFolder_);
+  const file = driveStep_('建立照片檔', () => folder.createFile(blob));
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (e) {
+    file.setTrashed(true);
+    throw new Error('無法把照片設成「知道連結的任何人可檢視」（Workspace 可能禁止對外分享）：' + e.message);
+  }
 
   const oldId = str_(sh.getRange(row, R.PHOTO_ID + 1).getValue());
   if (oldId && oldId !== file.getId()) {
@@ -874,13 +881,38 @@ function photoUrl_(fileId) {
   return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600';
 }
 
+/** 在 Apps Script 編輯器手動執行：逐步測試雲端硬碟權限，結果看「執行記錄」 */
+function testDrive() {
+  const folder = driveStep_('取得照片資料夾', photoFolder_);
+  Logger.log('1. 資料夾 OK：' + folder.getName());
+  const file = driveStep_('建立照片檔', () => folder.createFile('ordereat-test.txt', 'test'));
+  Logger.log('2. 建立檔案 OK');
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    Logger.log('3. 設定「知道連結的任何人可檢視」OK，照片上傳應該沒問題');
+  } catch (e) {
+    Logger.log('3. 設定分享失敗：' + e.message);
+  } finally {
+    file.setTrashed(true);
+  }
+}
+
+function driveStep_(label, fn) {
+  try {
+    return fn();
+  } catch (e) {
+    throw new Error(label + '失敗：' + e.message);
+  }
+}
+
 function photoFolder_() {
   const props = PropertiesService.getScriptProperties();
   const id = props.getProperty(PROP_PHOTO_FOLDER);
   if (id) {
     try {
       const folder = DriveApp.getFolderById(id);
-      if (!folder.isTrashed()) return folder;
+      // 屬性曾指到別的資料夾（例如「OrderEat 擴充套件」）就重建，避免寫進沒有權限的資料夾
+      if (!folder.isTrashed() && folder.getName() === PHOTO_FOLDER_NAME) return folder;
     } catch (e) {
       // 資料夾被刪除，重建
     }
