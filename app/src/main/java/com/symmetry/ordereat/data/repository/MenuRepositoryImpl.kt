@@ -10,6 +10,7 @@ import com.symmetry.ordereat.data.mapper.toDomain
 import com.symmetry.ordereat.data.photo.ImageCompressor
 import com.symmetry.ordereat.data.remote.ApiException
 import com.symmetry.ordereat.data.remote.OrderEatApi
+import com.symmetry.ordereat.data.remote.TransientApiException
 import com.symmetry.ordereat.data.remote.UploadPhotoPayload
 import com.symmetry.ordereat.data.sync.UploadScheduler
 import com.symmetry.ordereat.domain.model.Restaurant
@@ -76,9 +77,14 @@ class MenuRepositoryImpl @Inject constructor(
         return try {
             upload(pending)
             UploadOutcome.Uploaded
-        } catch (e: ApiException) {
+        } catch (e: TransientApiException) {
             scheduler.schedule()
             UploadOutcome.Queued(e.message.orEmpty())
+        } catch (e: ApiException) {
+            // 後端明確拒絕（權限、找不到餐廳…），重試也不會好：不留在手機假裝會補送
+            photoDao.deleteIfSame(pending.restaurantId, pending.filePath)
+            target.delete()
+            UploadOutcome.Failed("上傳失敗：${e.message.orEmpty()}")
         }
     }
 
