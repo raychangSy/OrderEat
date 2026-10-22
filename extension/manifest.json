@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OrderEat 個人點餐",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "從開放中的團點自己的餐",
   "action": {
     "default_title": "OrderEat",
@@ -11,8 +11,14 @@
       "32": "icons/icon32.png"
     }
   },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "permissions": [
-    "storage"
+    "storage",
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://script.google.com/*",
